@@ -1,6 +1,5 @@
-
 import sqlite3
-from typing import List, Dict, Any
+from typing import Dict, Any, Iterable, List
 
 DB_PATH = "data.db"
 SCHEMA = '''
@@ -20,18 +19,18 @@ def init_db():
         conn.execute(SCHEMA)
         conn.commit()
 
-def insert_if_new(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    new = []
+def insert_if_new(items: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    new_items: List[Dict[str, Any]] = []
     with sqlite3.connect(DB_PATH) as conn:
         cur = conn.cursor()
         for it in items:
             try:
                 cur.execute(
                     "INSERT INTO seen_articles (id, keyword, title, link, originallink, pubDate) VALUES (?, ?, ?, ?, ?, ?)",
-                    (it["id"], it["keyword"], it["title"], it["link"], it["originallink"], it["pubDate"])
+                    (it["id"], it.get("keyword"), it.get("title"), it.get("link"), it.get("originallink"), it.get("pubDate"))
                 )
-                new.append(it)
+                new_items.append(it)
             except sqlite3.IntegrityError:
                 pass
         conn.commit()
-    return new
+    return new_items

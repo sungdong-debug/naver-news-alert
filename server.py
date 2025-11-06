@@ -1,5 +1,4 @@
-# server.py
-import os, threading, time, schedule, logging
+import os, threading, time, logging, schedule
 from fastapi import FastAPI
 from settings import KEYWORDS, POLL_INTERVAL_MIN, TZ_LABEL
 from naver_news import search_news
@@ -11,7 +10,7 @@ app = FastAPI()
 
 @app.get("/")
 def health():
-    return {"status": "ok", "tz": TZ_LABEL, "keywords": KEYWORDS}
+    return {"status": "ok", "tz": TZ_LABEL, "keywords": KEYWORDS, "interval_min": POLL_INTERVAL_MIN}
 
 def job():
     logging.info("Polling... (%s)", TZ_LABEL)
@@ -31,12 +30,15 @@ def job():
 
 def scheduler_loop():
     init_db()
-    job()  # 첫 실행 즉시
+    job()
     schedule.every(POLL_INTERVAL_MIN).minutes.do(job)
     while True:
         schedule.run_pending()
         time.sleep(1)
 
-@app.on_event("startup")
-def start_scheduler():
-    threading.Thread(target=scheduler_loop, daemon=True).start()
+if __name__ == "__main__":
+    t = threading.Thread(target=scheduler_loop, daemon=True)
+    t.start()
+    import uvicorn
+    port = int(os.getenv("PORT", "10000"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
