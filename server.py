@@ -6,6 +6,7 @@ from naver_news import search_news
 from storage import init_db, insert_if_new
 from notifier import notify_slack, notify_telegram
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 app = FastAPI()
 
 @app.get("/")
@@ -36,10 +37,6 @@ def scheduler_loop():
         schedule.run_pending()
         time.sleep(1)
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
-    t = threading.Thread(target=scheduler_loop, daemon=True)
-    t.start()
-    import uvicorn
-    port = int(os.getenv("PORT", "10000"))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.on_event("startup")
+def start_scheduler():
+    threading.Thread(target=scheduler_loop, daemon=True).start()
